@@ -230,7 +230,11 @@ class ACM_Course_Filter {
         $quiz_page_id = get_option('acm_customization_quiz');
         $quiz_link = $quiz_page_id ? get_permalink($quiz_page_id) : '#';
 
-        return '<div class="acm-personalize-prompt"><p>' . esc_html__('Personalize your course — take the quiz', 'advanced-course-manager') . '</p><a class="acm-btn acm-btn-secondary" href="' . esc_url($quiz_link) . '">' . esc_html__('Take Quiz', 'advanced-course-manager') . '</a></div>';
+        return '<div class="acm-personalize-prompt">'
+            . '<h3 class="acm-personalize-prompt__title">' . esc_html__('Personalize your Course', 'advanced-course-manager') . '</h3>'
+            . '<p class="acm-personalize-prompt__text">' . esc_html__('Tell us more about you so that we can personalize your course to your circumstances', 'advanced-course-manager') . '</p>'
+            . '<a class="acm-btn acm-btn-secondary acm-personalize-prompt__button" href="' . esc_url($quiz_link) . '">' . esc_html__('Get started ->', 'advanced-course-manager') . '</a>'
+            . '</div>';
     }
 
     public function get_view_toggle_html($user_id = null) {

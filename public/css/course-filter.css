@@ -48,17 +48,61 @@
 }
 
 .acm-personalize-prompt {
-    margin: 16px 0;
+    margin: 16px auto;
+    max-width: 360px;
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #ede7dd;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+
+.acm-personalize-prompt__title {
+    margin: 0 0 8px;
+    color: #24384f;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.acm-personalize-prompt__text {
+    margin: 0 0 16px;
+    color: #5a5f66;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.35;
 }
 
 .acm-personalize-prompt p {
     margin: 0 0 8px;
 }
 
+.acm-personalize-prompt__button {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .acm-quiz-page-shell {
     max-width: 920px;
     margin: 32px auto;
     padding: 0 16px;
+}
+
+.acm-personalization-quiz-wrap,
+.acm-personalization-quiz-wrap * {
+    font-family: 'Montserrat', sans-serif;
+}
+
+.acm-personalization-quiz-wrap input,
+.acm-personalization-quiz-wrap button,
+.acm-personalization-quiz-wrap select,
+.acm-personalization-quiz-wrap textarea {
+    font-family: inherit;
 }
 
 .acm-quiz-card {

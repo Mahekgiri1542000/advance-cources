@@ -66,6 +66,41 @@ $lessons = get_posts(array(
     'orderby' => 'menu_order',
     'order'   => 'ASC'
 ));
+
+$course_chapter_ids = get_posts(array(
+    'post_type'      => 'acm_chapter',
+    'posts_per_page' => -1,
+    'post_status'    => 'publish',
+    'fields'         => 'ids',
+    'meta_query'     => array(
+        array(
+            'key'     => '_acm_chapter_course',
+            'value'   => $course_id,
+            'compare' => '='
+        )
+    )
+));
+
+$course_chapter_count = count($course_chapter_ids);
+$course_lesson_count = 0;
+
+if (!empty($course_chapter_ids)) {
+    $course_lesson_ids = get_posts(array(
+        'post_type'      => 'acm_lesson',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'fields'         => 'ids',
+        'meta_query'     => array(
+            array(
+                'key'     => '_acm_lesson_chapter',
+                'value'   => $course_chapter_ids,
+                'compare' => 'IN'
+            )
+        )
+    ));
+
+    $course_lesson_count = count($course_lesson_ids);
+}
 // Get progress
 $progress = $is_logged_in ? acm_get_course_progress($user_id, $course_id) : array(
     'total_lessons' => count($lessons),
@@ -152,9 +187,6 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
 <link rel="stylesheet" id="advance-course-lesson-css" href="<?php echo ACM_PLUGIN_URL; ?>public/css/advance-course-lesson.css?ver=<?php echo time(); ?>" media="all">
 <link rel="stylesheet" id="advance-course-lesson-css" href="<?php echo ACM_PLUGIN_URL; ?>public/css/single-course.css?ver=<?php echo time(); ?>" media="all">
 <style>
-    p a[href*="textonly=1"] {
-        display: none !important;
-    }
 </style>
 <div class="acm-course-page acm-filter-root">
     <div class="loading-overlay">
@@ -197,12 +229,12 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
                     
                     <div class="meta-item" style="align-items: inherit;">
                         <span class="meta-icon" aria-label="Lesson count" style="width: 20px;"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="#fff" d="M15 31c0 2.209-.791 4-3 4H5c-4 0-4-14 0-14h7c2.209 0 3 1.791 3 4v6z"></path><path fill="#fff" d="M34 33h-1V23h1c.553 0 1-.447 1-1s-.447-1-1-1H10c-4 0-4 14 0 14h24c.553 0 1-.447 1-1s-.447-1-1-1z"></path><path fill="#fff" d="M34.172 33H11c-2 0-2-10 0-10h23.172c1.104 0 1.104 10 0 10z"></path><path fill="#fff" d="M11.5 25h23.35c-.135-1.175-.36-2-.678-2H11c-1.651 0-1.938 6.808-.863 9.188C9.745 29.229 10.199 25 11.5 25z"></path><path fill="#fff" d="M12 8c0 2.209-1.791 4-4 4H4C0 12 0 1 4 1h4c2.209 0 4 1.791 4 4v3z"></path><path fill="#fff" d="M31 10h-1V3h1c.553 0 1-.447 1-1s-.447-1-1-1H7C3 1 3 12 7 12h24c.553 0 1-.447 1-1s-.447-1-1-1z"></path><path fill="#fff" d="M31.172 10H8c-2 0-2-7 0-7h23.172c1.104 0 1.104 7 0 7z"></path><path fill="#fff" d="M8 5h23.925c-.114-1.125-.364-2-.753-2H8C6.807 3 6.331 5.489 6.562 7.5 6.718 6.142 7.193 5 8 5z"></path><path fill="#fff" d="M20 17c0 2.209-1.791 4-4 4H6c-4 0-4-9 0-9h10c2.209 0 4 1.791 4 4v1z"></path><path fill="#fff" d="M35 19h-1v-5h1c.553 0 1-.447 1-1s-.447-1-1-1H15c-4 0-4 9 0 9h20c.553 0 1-.447 1-1s-.447-1-1-1z"></path><path fill="#fff" d="M35.172 19H16c-2 0-2-5 0-5h19.172c1.104 0 1.104 5 0 5z"></path><path fill="#fff" d="M16 16h19.984c-.065-1.062-.334-2-.812-2H16c-1.274 0-1.733 2.027-1.383 3.5.198-.839.657-1.5 1.383-1.5z"></path></svg> </span>
-                        <span class="meta-text"><?php _e('Chapter', 'advanced-course-manager'); ?> <?php echo $chapter_number; ?></span>
+                        <span class="meta-text"><?php _e('Chapters', 'advanced-course-manager'); ?> <?php echo esc_html($course_chapter_count); ?></span>
                     </div>
 
                     <div class="meta-item" style="align-items: inherit;">
                         <span class="meta-icon" aria-label="Lesson count" style="width: 20px;"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="#fff" d="M15 31c0 2.209-.791 4-3 4H5c-4 0-4-14 0-14h7c2.209 0 3 1.791 3 4v6z"></path><path fill="#fff" d="M34 33h-1V23h1c.553 0 1-.447 1-1s-.447-1-1-1H10c-4 0-4 14 0 14h24c.553 0 1-.447 1-1s-.447-1-1-1z"></path><path fill="#fff" d="M34.172 33H11c-2 0-2-10 0-10h23.172c1.104 0 1.104 10 0 10z"></path><path fill="#fff" d="M11.5 25h23.35c-.135-1.175-.36-2-.678-2H11c-1.651 0-1.938 6.808-.863 9.188C9.745 29.229 10.199 25 11.5 25z"></path><path fill="#fff" d="M12 8c0 2.209-1.791 4-4 4H4C0 12 0 1 4 1h4c2.209 0 4 1.791 4 4v3z"></path><path fill="#fff" d="M31 10h-1V3h1c.553 0 1-.447 1-1s-.447-1-1-1H7C3 1 3 12 7 12h24c.553 0 1-.447 1-1s-.447-1-1-1z"></path><path fill="#fff" d="M31.172 10H8c-2 0-2-7 0-7h23.172c1.104 0 1.104 7 0 7z"></path><path fill="#fff" d="M8 5h23.925c-.114-1.125-.364-2-.753-2H8C6.807 3 6.331 5.489 6.562 7.5 6.718 6.142 7.193 5 8 5z"></path><path fill="#fff" d="M20 17c0 2.209-1.791 4-4 4H6c-4 0-4-9 0-9h10c2.209 0 4 1.791 4 4v1z"></path><path fill="#fff" d="M35 19h-1v-5h1c.553 0 1-.447 1-1s-.447-1-1-1H15c-4 0-4 9 0 9h20c.553 0 1-.447 1-1s-.447-1-1-1z"></path><path fill="#fff" d="M35.172 19H16c-2 0-2-5 0-5h19.172c1.104 0 1.104 5 0 5z"></path><path fill="#fff" d="M16 16h19.984c-.065-1.062-.334-2-.812-2H16c-1.274 0-1.733 2.027-1.383 3.5.198-.839.657-1.5 1.383-1.5z"></path></svg> </span>
-                        <span class="meta-text"><?php echo count($lessons); ?> <?php _e('Lessons', 'advanced-course-manager'); ?></span>
+                        <span class="meta-text"><?php echo esc_html($course_lesson_count); ?> <?php _e('Lessons', 'advanced-course-manager'); ?></span>
                     </div>
                 </div>
                 
@@ -276,15 +308,26 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
                 <?php endif; ?>
             <?php endif; ?>
 
-            <?php if (has_excerpt()): ?>
+            <?php
+            $chapter_excerpt = has_excerpt() ? get_the_excerpt() : '';
+            if ($chapter_excerpt !== '') {
+                $chapter_excerpt = preg_replace('/<a\b[^>]*href=["\'][^"\']*textonly=1[^"\']*["\'][^>]*>.*?<\/a>/is', '', $chapter_excerpt);
+                $chapter_excerpt = trim($chapter_excerpt);
+            }
+            if ($chapter_excerpt !== '' && trim(wp_strip_all_tags($chapter_excerpt)) !== ''):
+            ?>
                 <section class="course-description" aria-labelledby="course-description-title">
                     <h2>Summary</h2>
-                    <?php echo get_the_excerpt(); ?>
+                    <?php echo $chapter_excerpt; ?>
                 </section>
             <?php endif; ?>
             
             <?php
             $chapter_content = apply_filters('the_content', get_the_content());
+            if ($chapter_content !== '') {
+                $chapter_content = preg_replace('/<a\b[^>]*href=["\'][^"\']*textonly=1[^"\']*["\'][^>]*>.*?<\/a>/is', '', $chapter_content);
+                $chapter_content = trim($chapter_content);
+            }
             if (trim(wp_strip_all_tags($chapter_content)) !== ''):
             ?>
                 <section class="course-description" aria-labelledby="course-description-title">
@@ -427,7 +470,19 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
             
             <div class="sidebar-card course-start-card">
                 <?php if ($is_logged_in): ?>
-                    <?php if ($progress['percentage'] > 0 && $progress['percentage'] < 100): ?>
+                    <?php
+                    $quiz_completed = function_exists('acm_is_quiz_completed') ? acm_is_quiz_completed($user_id) : true;
+                    $quiz_page_id = get_option('acm_customization_quiz');
+                    $quiz_link = $quiz_page_id ? get_permalink($quiz_page_id) : '#';
+                    ?>
+                    <?php if (!$quiz_completed): ?>
+                        <h3><?php _e('Personalize your Course', 'advanced-course-manager'); ?></h3>
+                        <p><?php _e('Tell us more about you so that we can personalize your course to your circumstances', 'advanced-course-manager'); ?></p>
+                        <a href="<?php echo esc_url($quiz_link); ?>" class="acm-btn acm-btn-primary acm-btn-block" aria-label="Get started with personalization quiz">
+                            <span class="btn-text"><?php _e('Get started', 'advanced-course-manager'); ?></span>
+                            <span class="btn-arrow" aria-hidden="true">→</span>
+                        </a>
+                    <?php elseif ($progress['percentage'] > 0 && $progress['percentage'] < 100): ?>
                         <h3><?php _e('Continue Learning', 'advanced-course-manager'); ?></h3>
                         <p><?php _e('Pick up where you left off', 'advanced-course-manager'); ?></p>
                         <?php
@@ -482,6 +537,17 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
                     </a>
                 <?php endif; ?>
             </div>
+
+            <?php if ($is_logged_in && $quiz_completed && $progress['percentage'] > 0 && $progress['percentage'] < 100): ?>
+                <div class="sidebar-card course-start-card">
+                    <h3><?php _e('Personalize your Course', 'advanced-course-manager'); ?></h3>
+                    <p><?php _e('Tell us more about you so that we can personalize your course to your circumstances', 'advanced-course-manager'); ?></p>
+                    <a href="<?php echo esc_url($quiz_link); ?>" class="acm-btn acm-btn-primary acm-btn-block" aria-label="Get started with personalization quiz">
+                        <span class="btn-text"><?php _e('Get started', 'advanced-course-manager'); ?></span>
+                        <span class="btn-arrow" aria-hidden="true">→</span>
+                    </a>
+                </div>
+            <?php endif; ?>
 
             
             

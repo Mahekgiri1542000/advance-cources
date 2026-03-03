@@ -251,6 +251,7 @@ class ACM_Metaboxes {
         $duration = get_post_meta($post->ID, '_acm_lesson_duration', true);
         $section = get_post_meta($post->ID, '_acm_lesson_section', true);
         $filter_key = get_post_meta($post->ID, '_acm_filter_key', true);
+        $lesson_order = (int) $post->menu_order;
         
         $chapters = get_posts(array(
             'post_type' => 'acm_chapter',
@@ -339,6 +340,14 @@ class ACM_Metaboxes {
                 </td>
             </tr>
             <tr>
+                <th><label for="acm_lesson_order"><?php _e('Lesson Order', 'advanced-course-manager'); ?></label></th>
+                <td>
+                    <input type="number" id="acm_lesson_order" name="acm_lesson_order"
+                        value="<?php echo $lesson_order > 0 ? esc_attr($lesson_order) : ''; ?>" class="small-text" min="1" step="1">
+                    <p class="description"><?php _e('Lower numbers appear first inside a chapter. Leave empty to auto-place at the end.', 'advanced-course-manager'); ?></p>
+                </td>
+            </tr>
+            <tr>
                 <th><label for="acm_filter_key_lesson"><?php _e('Filter Key', 'advanced-course-manager'); ?></label></th>
                 <td>
                     <input type="text" id="acm_filter_key_lesson" name="acm_filter_key" value="<?php echo esc_attr($filter_key); ?>" class="regular-text">
@@ -423,6 +432,55 @@ class ACM_Metaboxes {
 
         if (isset($_POST['acm_filter_key'])) {
             update_post_meta($post_id, '_acm_filter_key', sanitize_key($_POST['acm_filter_key']));
+        }
+
+        $target_order = null;
+        $current_order = (int) get_post_field('menu_order', $post_id);
+
+        if (isset($_POST['acm_lesson_order']) && $_POST['acm_lesson_order'] !== '') {
+            $target_order = max(1, intval($_POST['acm_lesson_order']));
+        } elseif ($current_order === 0) {
+            $chapter_for_order = isset($_POST['acm_lesson_chapter'])
+                ? intval($_POST['acm_lesson_chapter'])
+                : intval(get_post_meta($post_id, '_acm_lesson_chapter', true));
+
+            if ($chapter_for_order > 0) {
+                $chapter_lesson_ids = get_posts(array(
+                    'post_type'      => 'acm_lesson',
+                    'posts_per_page' => -1,
+                    'post_status'    => 'any',
+                    'fields'         => 'ids',
+                    'meta_query'     => array(
+                        array(
+                            'key'     => '_acm_lesson_chapter',
+                            'value'   => $chapter_for_order,
+                            'compare' => '='
+                        )
+                    ),
+                    'exclude'        => array($post_id),
+                ));
+
+                $max_order = 0;
+                if (!empty($chapter_lesson_ids)) {
+                    foreach ($chapter_lesson_ids as $chapter_lesson_id) {
+                        $existing_order = (int) get_post_field('menu_order', $chapter_lesson_id);
+                        if ($existing_order > $max_order) {
+                            $max_order = $existing_order;
+                        }
+                    }
+                }
+
+                $target_order = $max_order + 1;
+            }
+        }
+
+        if ($target_order !== null && $target_order !== $current_order) {
+            remove_action('save_post', array($this, 'save_lesson_meta'), 10);
+            wp_update_post(array(
+                'ID' => $post_id,
+                'menu_order' => $target_order,
+            ));
+            add_action('save_post', array($this, 'save_lesson_meta'), 10, 2);
         }
     }
 }

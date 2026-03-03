@@ -3,7 +3,7 @@
  * Plugin Name: Advanced Course Manager
  * Plugin URI: https://getjointly.ca
  * Description: A comprehensive course management system with partner collaboration, progress tracking, and seamless MemberPress integration.
- * Version: 1.0.0
+ * Version: 1.2.0
  * Author: Getjointly
  * Author URI: https://getjointly.ca
  * Text Domain: advanced-course-manager

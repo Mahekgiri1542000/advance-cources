@@ -149,6 +149,8 @@ class ACM_Lesson_Stats_Admin_Column {
     public function __construct() {
         add_filter('manage_acm_lesson_posts_columns', array($this, 'add_columns'));
         add_action('manage_acm_lesson_posts_custom_column', array($this, 'render_columns'), 10, 2);
+        add_filter('manage_edit-acm_lesson_sortable_columns', array($this, 'register_sortable_columns'));
+        add_action('pre_get_posts', array($this, 'handle_sortable_orderby'));
     }
 
     /**
@@ -161,11 +163,30 @@ class ACM_Lesson_Stats_Admin_Column {
             $new_columns[$key] = $label;
             if ($key === 'title') {
                 $new_columns['acm_lesson_chapter'] = __('Chapter', 'advanced-course-manager');
+                $new_columns['acm_lesson_order'] = __('Order', 'advanced-course-manager');
                 $new_columns['acm_lesson_students'] = __('Students', 'advanced-course-manager');
                 $new_columns['acm_lesson_progress'] = __('Completion', 'advanced-course-manager');
             }
         }
         return $new_columns;
+    }
+
+    public function register_sortable_columns($columns) {
+        $columns['acm_lesson_order'] = 'acm_lesson_order';
+        return $columns;
+    }
+
+    public function handle_sortable_orderby($query) {
+        if (!is_admin() || !$query->is_main_query() || $query->get('post_type') !== 'acm_lesson') {
+            return;
+        }
+
+        if ($query->get('orderby') === 'acm_lesson_order') {
+            $query->set('orderby', 'menu_order');
+            if (empty($query->get('order'))) {
+                $query->set('order', 'ASC');
+            }
+        }
     }
 
     /**
@@ -183,6 +204,12 @@ class ACM_Lesson_Stats_Admin_Column {
             } else {
                 echo '<span style="color:#999;">—</span>';
             }
+            return;
+        }
+
+        if ($column === 'acm_lesson_order') {
+            $lesson_order = (int) get_post_field('menu_order', $lesson_id);
+            echo esc_html($lesson_order > 0 ? $lesson_order : '—');
             return;
         }
 

@@ -65,6 +65,15 @@ class ACM_Lesson_Course_Filter {
             return;
         }
 
+        if (empty($_GET['orderby'])) {
+            $query->set('orderby', array(
+                'menu_order' => 'ASC',
+                'title'      => 'ASC',
+                'date'       => 'ASC',
+            ));
+            $query->set('order', 'ASC');
+        }
+
         if (!empty($_GET['acm_lesson_course'])) {
             $course_id = intval($_GET['acm_lesson_course']);
             $chapter_ids = get_posts([
