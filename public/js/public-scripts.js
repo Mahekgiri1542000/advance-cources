@@ -17,6 +17,7 @@
             this.bookmarkManagement();
             this.notificationCenter();
             this.agreementBuilder();
+            this.clearQuizFilter();
         },
 
         // Track time spent on lesson
@@ -439,6 +440,124 @@
                                 ACM.showNotification('Added to your agreement', 'success');
                             }
                         }
+                    }
+                });
+            });
+        },
+
+        clearQuizFilter: function() {
+            $(document).on('click', '.acm-clear-quiz-filter-btn', function(e) {
+                e.preventDefault();
+
+                var $btn = $(this);
+                var nonce = $btn.data('nonce') || (typeof acmLessonData !== 'undefined' ? acmLessonData.nonce : '');
+                var ajaxUrl = $btn.data('ajax-url') || (typeof acmLessonData !== 'undefined' ? acmLessonData.ajaxUrl : '');
+                var $container = $btn.closest('.acm-personalize-prompt, .course-start-card');
+                var $status = $container.find('.acm-clear-filter-status');
+
+                if (!$status.length) {
+                    $status = $('<div class="acm-clear-filter-status" style="margin-top:10px;font-size:13px;color:#4a5568;"><div class="acm-clear-filter-progress" style="height:6px;background:#e5e7eb;border-radius:6px;overflow:hidden;"><span style="display:block;height:100%;width:0;background:#db9563;transition:width 0.2s ease;"></span></div><div class="acm-clear-filter-message" style="margin-top:6px;"></div></div>');
+                    $btn.after($status);
+                }
+
+                var $progress = $status.find('.acm-clear-filter-progress span');
+                var $message = $status.find('.acm-clear-filter-message');
+                var progressValue = 8;
+                var progressTimer = null;
+
+                function updateStatus(message, color, percent) {
+                    if (typeof percent === 'number') {
+                        $progress.css('width', percent + '%');
+                    }
+                    if (color) {
+                        $message.css('color', color);
+                    }
+                    $message.text(message);
+                }
+
+                function buildFallbackUrl() {
+                    try {
+                        var url = new URL(window.location.href);
+                        url.searchParams.set('acm_clear_quiz_filter', '1');
+                        url.searchParams.set('_acm_nonce', nonce);
+                        url.searchParams.delete('acm_related_only');
+                        return url.toString();
+                    } catch (error) {
+                        return window.location.href;
+                    }
+                }
+
+                if (!nonce || !ajaxUrl) {
+                    updateStatus('Unable to clear filter right now. Please refresh and try again.', '#b91c1c', 100);
+                    return;
+                }
+
+                $btn.prop('disabled', true);
+                updateStatus('Clearing quiz filter...', '#4a5568', progressValue);
+
+                progressTimer = setInterval(function() {
+                    if (progressValue < 90) {
+                        progressValue += 8;
+                        updateStatus('Clearing quiz filter...', '#4a5568', progressValue);
+                    }
+                }, 180);
+
+                $.ajax({
+                    url: ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'acm_clear_personalization_filter',
+                        nonce: nonce,
+                        current_url: window.location.href
+                    },
+                    success: function(response) {
+                        if (response && response.success) {
+                            var redirectUrl = response.data && response.data.redirect_url
+                                ? response.data.redirect_url
+                                : window.location.href;
+
+                            if (progressTimer) {
+                                clearInterval(progressTimer);
+                            }
+
+                            updateStatus('Quiz filter cleared. Redirecting...', '#166534', 100);
+
+                            try {
+                                var url = new URL(redirectUrl, window.location.origin);
+                                url.searchParams.delete('acm_related_only');
+                                url.searchParams.delete('acm_clear_quiz_filter');
+                                url.searchParams.delete('_acm_nonce');
+                                setTimeout(function() {
+                                    window.location.href = url.toString();
+                                }, 300);
+                            } catch (error) {
+                                setTimeout(function() {
+                                    window.location.href = redirectUrl;
+                                }, 300);
+                            }
+                            return;
+                        }
+
+                        if (progressTimer) {
+                            clearInterval(progressTimer);
+                        }
+
+                        updateStatus('Could not clear via AJAX. Retrying...', '#b45309', 95);
+                        setTimeout(function() {
+                            window.location.href = buildFallbackUrl();
+                        }, 400);
+                        $btn.prop('disabled', false);
+                    },
+                    error: function() {
+                        if (progressTimer) {
+                            clearInterval(progressTimer);
+                        }
+
+                        updateStatus('Connection issue. Retrying...', '#b45309', 95);
+                        setTimeout(function() {
+                            window.location.href = buildFallbackUrl();
+                        }, 400);
+                        $btn.prop('disabled', false);
                     }
                 });
             });

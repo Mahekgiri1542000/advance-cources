@@ -30,9 +30,6 @@ class ACM_Customization_Quiz {
         add_action('wp_ajax_acm_get_customization', array($this, 'get_customization'));
         add_action('wp_ajax_acm_reset_customization', array($this, 'reset_customization'));
         
-        // Add shortcode
-        add_shortcode('acm_customization_quiz', array($this, 'quiz_shortcode'));
-        
         // Filter lessons based on customization
         add_filter('acm_course_lessons', array($this, 'filter_lessons'), 10, 2);
     }

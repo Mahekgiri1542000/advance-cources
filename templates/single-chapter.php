@@ -475,14 +475,7 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
                     $quiz_page_id = get_option('acm_customization_quiz');
                     $quiz_link = $quiz_page_id ? get_permalink($quiz_page_id) : '#';
                     ?>
-                    <?php if (!$quiz_completed): ?>
-                        <h3><?php _e('Personalize your Course', 'advanced-course-manager'); ?></h3>
-                        <p><?php _e('Tell us more about you so that we can personalize your course to your circumstances', 'advanced-course-manager'); ?></p>
-                        <a href="<?php echo esc_url($quiz_link); ?>" class="acm-btn acm-btn-primary acm-btn-block" aria-label="Get started with personalization quiz">
-                            <span class="btn-text"><?php _e('Get started', 'advanced-course-manager'); ?></span>
-                            <span class="btn-arrow" aria-hidden="true">→</span>
-                        </a>
-                    <?php elseif ($progress['percentage'] > 0 && $progress['percentage'] < 100): ?>
+                    <?php if ($progress['percentage'] > 0 && $progress['percentage'] < 100): ?>
                         <h3><?php _e('Continue Learning', 'advanced-course-manager'); ?></h3>
                         <p><?php _e('Pick up where you left off', 'advanced-course-manager'); ?></p>
                         <?php
@@ -505,6 +498,13 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
                                 <span class="btn-arrow" aria-hidden="true">→</span>
                             </a>
                         <?php endif; ?>
+                    <?php elseif (!$quiz_completed): ?>
+                        <h3><?php _e('Personalize your Course', 'advanced-course-manager'); ?></h3>
+                        <p><?php _e('Tell us more about you so that we can personalize your course to your circumstances', 'advanced-course-manager'); ?></p>
+                        <a href="<?php echo esc_url($quiz_link); ?>" class="acm-btn acm-btn-primary acm-btn-block" aria-label="Get started with personalization quiz">
+                            <span class="btn-text"><?php _e('Get started', 'advanced-course-manager'); ?></span>
+                            <span class="btn-arrow" aria-hidden="true">→</span>
+                        </a>
                     <?php elseif ($progress['percentage'] >= 100): ?>
                         <h3><?php _e('Chapter Completed!', 'advanced-course-manager'); ?></h3>
                         <p><?php _e('Congratulations on completing this Chapter!', 'advanced-course-manager'); ?></p>
@@ -538,7 +538,7 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
                 <?php endif; ?>
             </div>
 
-            <?php if ($is_logged_in && $quiz_completed && $progress['percentage'] > 0 && $progress['percentage'] < 100): ?>
+            <?php if ($is_logged_in && !$quiz_completed && $progress['percentage'] > 0 && $progress['percentage'] < 100): ?>
                 <div class="sidebar-card course-start-card">
                     <h3><?php _e('Personalize your Course', 'advanced-course-manager'); ?></h3>
                     <p><?php _e('Tell us more about you so that we can personalize your course to your circumstances', 'advanced-course-manager'); ?></p>
@@ -546,6 +546,16 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
                         <span class="btn-text"><?php _e('Get started', 'advanced-course-manager'); ?></span>
                         <span class="btn-arrow" aria-hidden="true">→</span>
                     </a>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($is_logged_in && $quiz_completed): ?>
+                <div class="sidebar-card course-start-card">
+                    <h3><?php _e('Quiz Filter Applied', 'advanced-course-manager'); ?></h3>
+                    <p><?php _e('Your course view is personalized by your quiz answers. Clear the filter to view all sections.', 'advanced-course-manager'); ?></p>
+                    <button type="button" class="acm-btn acm-btn-secondary acm-btn-block acm-clear-quiz-filter-btn" data-nonce="<?php echo esc_attr(wp_create_nonce('acm_nonce')); ?>" data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>">
+                        <?php _e('Clear Quiz Filter', 'advanced-course-manager'); ?>
+                    </button>
                 </div>
             <?php endif; ?>
 

@@ -323,10 +323,6 @@ if (!empty($all_lessons)) {
             <span class="current" aria-current="page"><?php the_title(); ?></span>
         </nav>
 
-        <?php if (function_exists('acm_get_personalization_prompt_html')): ?>
-            <?php echo acm_get_personalization_prompt_html($user_id); ?>
-        <?php endif; ?>
-        
         <?php if ($partner_id): 
             $partner = get_userdata($partner_id);
         ?>

@@ -29,6 +29,36 @@ class ACM_Course_Filter {
 
     private function __construct() {
         add_action('wp_ajax_acm_get_quiz_answers_for_builder', array($this, 'get_quiz_answers_for_builder'));
+        add_action('wp_ajax_acm_clear_personalization_filter', array($this, 'clear_personalization_filter'));
+        add_action('template_redirect', array($this, 'handle_clear_filter_request'));
+    }
+
+    private function get_quiz_meta_keys() {
+        return array(
+            'acm_quiz_has_kids',
+            'acm_quiz_has_business',
+            'acm_quiz_has_pets',
+            'acm_quiz_home_situation',
+            'acm_quiz_has_second_home',
+            'acm_quiz_completed',
+            'acm_course_customization',
+        );
+    }
+
+    private function clear_quiz_filter_for_user($user_id) {
+        foreach ($this->get_quiz_meta_keys() as $meta_key) {
+            delete_user_meta($user_id, $meta_key);
+        }
+    }
+
+    private function build_clean_redirect_url($url = '') {
+        $target_url = $url ? $url : wp_get_referer();
+
+        if (!$target_url) {
+            $target_url = home_url('/');
+        }
+
+        return remove_query_arg(array('acm_related_only', 'acm_clear_quiz_filter', '_acm_nonce'), $target_url);
     }
 
     public function get_user_quiz_answers($user_id = null) {
@@ -130,7 +160,7 @@ class ACM_Course_Filter {
         
         $filter_key = $this->get_filter_key($lesson_id);
         if ($filter_key === '') {
-            return false;
+            return true;
         }
         
         return !$this->is_hidden_for_user($lesson_id, $user_id);
@@ -237,6 +267,22 @@ class ACM_Course_Filter {
             . '</div>';
     }
 
+    public function get_clear_quiz_filter_box_html($user_id = null) {
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+
+        if (!$user_id || !$this->is_quiz_completed($user_id)) {
+            return '';
+        }
+
+        return '<div class="acm-personalize-prompt acm-personalize-prompt--clear-filter">'
+            . '<h3 class="acm-personalize-prompt__title">' . esc_html__('Quiz Filter Applied', 'advanced-course-manager') . '</h3>'
+            . '<p class="acm-personalize-prompt__text">' . esc_html__('Your course view is personalized by your quiz answers. Clear the filter to view all sections.', 'advanced-course-manager') . '</p>'
+            . '<button type="button" class="acm-btn acm-btn-secondary acm-personalize-prompt__button acm-clear-quiz-filter-btn" data-nonce="' . esc_attr(wp_create_nonce('acm_nonce')) . '" data-ajax-url="' . esc_url(admin_url('admin-ajax.php')) . '">' . esc_html__('Clear Quiz Filter', 'advanced-course-manager') . '</button>'
+            . '</div>';
+    }
+
     public function get_view_toggle_html($user_id = null) {
         if (!$user_id) {
             $user_id = get_current_user_id();
@@ -260,6 +306,55 @@ class ACM_Course_Filter {
         wp_send_json_success(array(
             'answers' => $this->get_user_quiz_answers($user_id)
         ));
+    }
+
+    public function clear_personalization_filter() {
+        check_ajax_referer('acm_nonce', 'nonce');
+
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            wp_send_json_error(array('message' => __('Please log in to continue.', 'advanced-course-manager')));
+        }
+
+        $this->clear_quiz_filter_for_user($user_id);
+
+        $current_url = '';
+        if (isset($_POST['current_url'])) {
+            $current_url = esc_url_raw(wp_unslash($_POST['current_url']));
+        }
+
+        $redirect_url = $this->build_clean_redirect_url($current_url);
+
+        wp_send_json_success(array(
+            'message' => __('Quiz filter cleared.', 'advanced-course-manager'),
+            'redirect_url' => esc_url_raw($redirect_url)
+        ));
+    }
+
+    public function handle_clear_filter_request() {
+        if (!isset($_GET['acm_clear_quiz_filter']) || $_GET['acm_clear_quiz_filter'] !== '1') {
+            return;
+        }
+
+        if (!is_user_logged_in()) {
+            return;
+        }
+
+        $nonce = isset($_GET['_acm_nonce']) ? sanitize_text_field(wp_unslash($_GET['_acm_nonce'])) : '';
+        if (!$nonce || !wp_verify_nonce($nonce, 'acm_nonce')) {
+            return;
+        }
+
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return;
+        }
+
+        $this->clear_quiz_filter_for_user($user_id);
+
+        $redirect_url = $this->build_clean_redirect_url();
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 }
 
@@ -297,6 +392,10 @@ function acm_get_personalization_prompt_html($user_id = null) {
 
 function acm_get_view_toggle_html($user_id = null) {
     return acm_course_filter()->get_view_toggle_html($user_id);
+}
+
+function acm_get_clear_quiz_filter_box_html($user_id = null) {
+    return acm_course_filter()->get_clear_quiz_filter_box_html($user_id);
 }
 
 function acm_is_chapter_related_for_user($chapter_id, $user_id = null) {

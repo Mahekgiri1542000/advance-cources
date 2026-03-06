@@ -22,7 +22,7 @@ class ACM_Public {
     
     public function enqueue_styles() {
         // Check if we're on a course or lesson page
-        if (is_singular(array('acm_course', 'acm_lesson')) || is_page() || is_post_type_archive('acm_course')) {
+        if (is_singular(array('acm_course', 'acm_chapter', 'acm_lesson')) || is_page() || is_post_type_archive('acm_course')) {
             wp_enqueue_style(
                 'acm-public-styles',
                 ACM_PLUGIN_URL . 'public/css/public-style.css',
@@ -43,7 +43,7 @@ class ACM_Public {
     
     public function enqueue_scripts() {
         // Check if we're on a course or lesson page
-        if (is_singular(array('acm_course', 'acm_lesson')) || is_page() || is_post_type_archive('acm_course')) {
+        if (is_singular(array('acm_course', 'acm_chapter', 'acm_lesson')) || is_page() || is_post_type_archive('acm_course')) {
             wp_enqueue_script(
                 'acm-public-scripts',
                 ACM_PLUGIN_URL . 'public/js/public-scripts.js',

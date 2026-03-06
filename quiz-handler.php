@@ -37,6 +37,10 @@ class ACM_Quiz_Handler {
         return $value === 'yes' ? 'yes' : 'no';
     }
 
+    private function is_valid_yes_no($value) {
+        return in_array($value, array('yes', 'no'), true);
+    }
+
     private function get_required_payload() {
         return array(
             'acm_quiz_has_kids',
@@ -70,6 +74,22 @@ class ACM_Quiz_Handler {
             wp_send_json_error(array(
                 'message' => __('Invalid home situation value.', 'advanced-course-manager')
             ));
+        }
+
+        $yes_no_fields = array(
+            'acm_quiz_has_kids',
+            'acm_quiz_has_business',
+            'acm_quiz_has_pets',
+            'acm_quiz_has_second_home',
+        );
+
+        foreach ($yes_no_fields as $field_key) {
+            $field_value = sanitize_text_field(wp_unslash($_POST[$field_key]));
+            if (!$this->is_valid_yes_no($field_value)) {
+                wp_send_json_error(array(
+                    'message' => __('Invalid yes/no quiz value.', 'advanced-course-manager')
+                ));
+            }
         }
 
         $answers = array(
