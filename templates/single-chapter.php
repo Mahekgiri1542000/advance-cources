@@ -302,12 +302,6 @@ if ($is_logged_in && $chapter_total_lessons > 0) {
             </div>
             <?php endif; ?>
 
-            <?php if ($is_logged_in): ?>
-                <?php if (function_exists('acm_get_personalization_prompt_html')): ?>
-                    <?php echo acm_get_personalization_prompt_html($user_id); ?>
-                <?php endif; ?>
-            <?php endif; ?>
-
             <?php
             $chapter_excerpt = has_excerpt() ? get_the_excerpt() : '';
             if ($chapter_excerpt !== '') {
