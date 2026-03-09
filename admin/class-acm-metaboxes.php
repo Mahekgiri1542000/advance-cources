@@ -127,7 +127,16 @@ class ACM_Metaboxes {
         }
 
         if (isset($_POST['acm_chapter_course'])) {
-            update_post_meta($post_id, '_acm_chapter_course', intval($_POST['acm_chapter_course']));
+            $chapter_course_id = intval($_POST['acm_chapter_course']);
+
+            update_post_meta($post_id, '_acm_chapter_course', $chapter_course_id);
+            update_post_meta($post_id, 'acm_chapter_course', $chapter_course_id);
+            update_post_meta($post_id, 'course_id', $chapter_course_id);
+
+            wp_update_post(array(
+                'ID'          => $post_id,
+                'post_parent' => $chapter_course_id,
+            ));
         }
 
         if (isset($_POST['acm_chapter_number'])) {
@@ -370,6 +379,10 @@ class ACM_Metaboxes {
         if ($post->post_type !== 'acm_course') {
             return;
         }
+
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
         
         // Save course meta
         if (isset($_POST['acm_course_province'])) {
@@ -388,11 +401,134 @@ class ACM_Metaboxes {
         update_post_meta($post_id, '_acm_enable_certificate', $certificate);
         
         // Save MemberPress memberships
+        $memberships = array();
         if (isset($_POST['acm_memberpress_memberships'])) {
-            $memberships = array_map('intval', $_POST['acm_memberpress_memberships']);
+            $memberships = array_map('intval', (array) $_POST['acm_memberpress_memberships']);
             update_post_meta($post_id, '_acm_memberpress_memberships', $memberships);
         } else {
             delete_post_meta($post_id, '_acm_memberpress_memberships');
+        }
+
+        // Keep chapter and lesson access rules aligned with the course-level setting.
+        $this->sync_memberpress_permissions_to_course_tree($post_id, $memberships);
+    }
+
+    /**
+     * Sync MemberPress memberships from a course to all child chapters/lessons.
+     */
+    private function sync_memberpress_permissions_to_course_tree($course_id, $memberships) {
+        $meta_chapter_ids = get_posts(array(
+            'post_type'      => 'acm_chapter',
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'fields'         => 'ids',
+            'meta_query'     => array(
+                'relation' => 'OR',
+                array(
+                    'key'   => '_acm_chapter_course',
+                    'value' => $course_id,
+                ),
+                array(
+                    'key'   => 'acm_chapter_course',
+                    'value' => $course_id,
+                ),
+                array(
+                    'key'   => 'course_id',
+                    'value' => $course_id,
+                ),
+            ),
+        ));
+
+        $parent_chapter_ids = get_posts(array(
+            'post_type'      => 'acm_chapter',
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'fields'         => 'ids',
+            'post_parent'    => (int) $course_id,
+        ));
+
+        $chapter_ids = array_values(array_unique(array_map('intval', array_merge($meta_chapter_ids, $parent_chapter_ids))));
+
+        foreach ($chapter_ids as $chapter_id) {
+            if (!empty($memberships)) {
+                update_post_meta($chapter_id, '_acm_memberpress_memberships', $memberships);
+            } else {
+                delete_post_meta($chapter_id, '_acm_memberpress_memberships');
+            }
+        }
+
+        $lesson_ids = array();
+
+        if (!empty($chapter_ids)) {
+            $chapter_lesson_ids = get_posts(array(
+                'post_type'      => 'acm_lesson',
+                'posts_per_page' => -1,
+                'post_status'    => 'any',
+                'fields'         => 'ids',
+                'meta_query'     => array(
+                    'relation' => 'OR',
+                    array(
+                        'key'     => '_acm_lesson_chapter',
+                        'value'   => $chapter_ids,
+                        'compare' => 'IN',
+                    ),
+                    array(
+                        'key'     => 'acm_lesson_chapter',
+                        'value'   => $chapter_ids,
+                        'compare' => 'IN',
+                    ),
+                ),
+            ));
+
+            $parent_lesson_ids = get_posts(array(
+                'post_type'      => 'acm_lesson',
+                'posts_per_page' => -1,
+                'post_status'    => 'any',
+                'fields'         => 'ids',
+                'post_parent__in'=> $chapter_ids,
+            ));
+
+            $lesson_ids = array_merge($lesson_ids, $chapter_lesson_ids, $parent_lesson_ids);
+        }
+
+        $direct_lesson_ids = get_posts(array(
+            'post_type'      => 'acm_lesson',
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'fields'         => 'ids',
+            'meta_query'     => array(
+                'relation' => 'OR',
+                array(
+                    'key'   => '_acm_lesson_course',
+                    'value' => $course_id,
+                ),
+                array(
+                    'key'   => 'acm_lesson_course',
+                    'value' => $course_id,
+                ),
+                array(
+                    'key'   => 'course_id',
+                    'value' => $course_id,
+                ),
+            ),
+        ));
+
+        $direct_parent_lesson_ids = get_posts(array(
+            'post_type'      => 'acm_lesson',
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'fields'         => 'ids',
+            'post_parent'    => (int) $course_id,
+        ));
+
+        $lesson_ids = array_values(array_unique(array_map('intval', array_merge($lesson_ids, $direct_lesson_ids, $direct_parent_lesson_ids))));
+
+        foreach ($lesson_ids as $lesson_id) {
+            if (!empty($memberships)) {
+                update_post_meta($lesson_id, '_acm_memberpress_memberships', $memberships);
+            } else {
+                delete_post_meta($lesson_id, '_acm_memberpress_memberships');
+            }
         }
     }
     
@@ -415,7 +551,36 @@ class ACM_Metaboxes {
         }
         
         if (isset($_POST['acm_lesson_chapter'])) {
-            update_post_meta($post_id, '_acm_lesson_chapter', intval($_POST['acm_lesson_chapter']));
+            $lesson_chapter_id = intval($_POST['acm_lesson_chapter']);
+            $lesson_course_id = 0;
+
+            if ($lesson_chapter_id > 0) {
+                $lesson_course_id = (int) get_post_meta($lesson_chapter_id, '_acm_chapter_course', true);
+                if (!$lesson_course_id) {
+                    $lesson_course_id = (int) get_post_meta($lesson_chapter_id, 'acm_chapter_course', true);
+                }
+                if (!$lesson_course_id) {
+                    $lesson_course_id = (int) get_post_meta($lesson_chapter_id, 'course_id', true);
+                }
+                if (!$lesson_course_id) {
+                    $chapter = get_post($lesson_chapter_id);
+                    $lesson_course_id = $chapter ? (int) $chapter->post_parent : 0;
+                }
+            }
+
+            update_post_meta($post_id, '_acm_lesson_chapter', $lesson_chapter_id);
+            update_post_meta($post_id, 'acm_lesson_chapter', $lesson_chapter_id);
+
+            if ($lesson_course_id > 0) {
+                update_post_meta($post_id, '_acm_lesson_course', $lesson_course_id);
+                update_post_meta($post_id, 'acm_lesson_course', $lesson_course_id);
+                update_post_meta($post_id, 'course_id', $lesson_course_id);
+            }
+
+            wp_update_post(array(
+                'ID'          => $post_id,
+                'post_parent' => $lesson_chapter_id,
+            ));
         }
         
         if (isset($_POST['acm_lesson_video_type'])) {
