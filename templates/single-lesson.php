@@ -181,6 +181,18 @@ if (!empty($all_lessons)) {
     .acm-lesson-navigation-buttons .acm-btn-secondary {
         border: 1px solid #d6c3b2;
     }
+    #acm-mark-complete {
+        background: #ede7dd !important;
+        color: #555a5a !important;
+        border: 1px solid #d6c3b2 !important;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.2;
+        transform: none !important;
+        box-shadow: none !important;
+    }
     button#acm-mark-complete:hover {
         background: #ede7dd !important;
         color: #555a5a !important;
@@ -519,7 +531,7 @@ if (!empty($all_lessons)) {
                 <!-- Action Buttons -->
                 <div class="acm-lesson-actions">
                     <?php if (!$progress || $progress->status !== 'completed'): ?>
-                        <button id="acm-mark-complete" class="acm-btn acm-btn-primary" data-lesson-id="<?php echo esc_attr($lesson_id); ?>" aria-label="Mark this lesson as complete">
+                        <button id="acm-mark-complete" class="acm-btn acm-btn-secondary" data-lesson-id="<?php echo esc_attr($lesson_id); ?>" aria-label="Mark this lesson as complete">
                             <?php _e('Mark as Complete', 'advanced-course-manager'); ?>
                         </button>
                         

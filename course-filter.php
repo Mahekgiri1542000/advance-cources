@@ -257,8 +257,7 @@ class ACM_Course_Filter {
             return '';
         }
 
-        $quiz_page_id = get_option('acm_customization_quiz');
-        $quiz_link = $quiz_page_id ? get_permalink($quiz_page_id) : '#';
+        $quiz_link = acm_get_customization_quiz_link();
 
         return '<div class="acm-personalize-prompt">'
             . '<h3 class="acm-personalize-prompt__title">' . esc_html__('Personalize your Course', 'advanced-course-manager') . '</h3>'
@@ -396,6 +395,27 @@ function acm_get_view_toggle_html($user_id = null) {
 
 function acm_get_clear_quiz_filter_box_html($user_id = null) {
     return acm_course_filter()->get_clear_quiz_filter_box_html($user_id);
+}
+
+function acm_get_customization_quiz_link() {
+    $quiz_page_id = (int) get_option('acm_customization_quiz');
+
+    if ($quiz_page_id > 0) {
+        $quiz_link = get_permalink($quiz_page_id);
+        if (!empty($quiz_link) && $quiz_link !== '#') {
+            return $quiz_link;
+        }
+    }
+
+    $quiz_page = get_page_by_path('course-personalization-quiz');
+    if ($quiz_page instanceof WP_Post) {
+        $quiz_link = get_permalink($quiz_page->ID);
+        if (!empty($quiz_link) && $quiz_link !== '#') {
+            return $quiz_link;
+        }
+    }
+
+    return home_url('/course-personalization-quiz/');
 }
 
 function acm_is_chapter_related_for_user($chapter_id, $user_id = null) {

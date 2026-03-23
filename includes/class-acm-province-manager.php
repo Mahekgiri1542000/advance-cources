@@ -59,6 +59,16 @@ class ACM_Province_Manager {
         if (!$user_id) {
             $user_id = get_current_user_id();
         }
+
+        // Prefer province inferred from active MemberPress memberships.
+        $membership_province = $this->get_membership_based_province($user_id);
+        if ($membership_province) {
+            $stored_province = get_user_meta($user_id, 'acm_user_province', true);
+            if ($stored_province !== $membership_province) {
+                update_user_meta($user_id, 'acm_user_province', $membership_province);
+            }
+            return $membership_province;
+        }
         
         // Check if user has province set
         $province = get_user_meta($user_id, 'acm_user_province', true);
@@ -74,6 +84,71 @@ class ACM_Province_Manager {
         }
         
         return $province;
+    }
+
+    /**
+     * Infer province from user's active MemberPress memberships.
+     */
+    public function get_membership_based_province($user_id) {
+        $user_id = intval($user_id);
+        if ($user_id <= 0 || !class_exists('MeprUser')) {
+            return null;
+        }
+
+        $member = new MeprUser($user_id);
+        if (!method_exists($member, 'active_product_subscriptions')) {
+            return null;
+        }
+
+        $active_memberships = array_map('intval', (array) $member->active_product_subscriptions('ids'));
+        if (empty($active_memberships)) {
+            return null;
+        }
+
+        $course_ids = get_posts(array(
+            'post_type' => 'acm_course',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+            'no_found_rows' => true,
+            'orderby' => 'menu_order title',
+            'order' => 'ASC',
+        ));
+
+        if (empty($course_ids)) {
+            return null;
+        }
+
+        $matched_provinces = array();
+
+        foreach ($course_ids as $course_id) {
+            $province = sanitize_key(get_post_meta($course_id, '_acm_course_province', true));
+            if (!$province || !array_key_exists($province, $this->provinces)) {
+                continue;
+            }
+
+            $course_memberships = get_post_meta($course_id, '_acm_memberpress_memberships', true);
+            if (empty($course_memberships) || !is_array($course_memberships)) {
+                continue;
+            }
+
+            $course_memberships = array_map('intval', $course_memberships);
+            if (!empty(array_intersect($active_memberships, $course_memberships))) {
+                $matched_provinces[$province] = true;
+            }
+        }
+
+        if (empty($matched_provinces)) {
+            return null;
+        }
+
+        foreach (array_keys($this->provinces) as $province_key) {
+            if (isset($matched_provinces[$province_key])) {
+                return $province_key;
+            }
+        }
+
+        return null;
     }
     
     /**

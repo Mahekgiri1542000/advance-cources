@@ -15,9 +15,9 @@ $related_only_mode = $is_logged_in
     && $_GET['acm_related_only'] === '1'
     && function_exists('acm_is_quiz_completed')
     && acm_is_quiz_completed($user_id);
-// if (empty($selected_province) && $is_logged_in) {
-//     $selected_province = acm_get_user_province($user_id);
-// }
+if ($is_logged_in) {
+    $selected_province = acm_get_user_province($user_id);
+}
 
 $all_provinces = array(
     '' => __('All Provinces', 'advanced-course-manager'),

@@ -73,7 +73,7 @@ class ACM_AJAX {
 
             // Get updated progress
             $course_id = get_post_meta($lesson_id, '_acm_lesson_course', true);
-            // $progress = ACM_Progress::get_instance()->get_course_progress($user_id, $course_id);
+            $progress = ACM_Progress::get_instance()->get_course_progress($user_id, $course_id);
             
             wp_send_json_success(array(
                 'success'  => true,
@@ -385,11 +385,27 @@ class ACM_AJAX {
         
         $province = isset($_POST['province']) ? sanitize_text_field($_POST['province']) : '';
         
+        $user_id = get_current_user_id();
+
+        if (class_exists('ACM_Province_Manager') && $user_id) {
+            $auto_province = ACM_Province_Manager::get_instance()->get_membership_based_province($user_id);
+            if (!empty($auto_province)) {
+                ACM_Province_Manager::get_instance()->set_user_province($user_id, $auto_province);
+                $course_id = ACM_Province_Manager::get_instance()->get_course_for_province($auto_province);
+                $course_url = $course_id ? get_permalink($course_id) : home_url();
+
+                wp_send_json_success(array(
+                    'message' => __('Province set automatically from your membership', 'advanced-course-manager'),
+                    'province' => $auto_province,
+                    'course_url' => $course_url,
+                    'automatic' => true,
+                ));
+            }
+        }
+
         if (!$province) {
             wp_send_json_error(array('message' => __('Invalid province', 'advanced-course-manager')));
         }
-        
-        $user_id = get_current_user_id();
         
         // Set province
         if (class_exists('ACM_Province_Manager')) {

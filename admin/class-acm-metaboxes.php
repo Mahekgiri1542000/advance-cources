@@ -7,6 +7,7 @@
 if (!defined('ABSPATH')) exit;
 class ACM_Metaboxes {
     private static $instance = null;
+    private $is_internal_parent_update = false;
     
     public static function get_instance() {
         if (null === self::$instance) {
@@ -110,6 +111,10 @@ class ACM_Metaboxes {
     }
 
     public function save_chapter_meta($post_id, $post) {
+        if ($this->is_internal_parent_update) {
+            return;
+        }
+
         if ($post->post_type !== 'acm_chapter') {
             return;
         }
@@ -133,10 +138,7 @@ class ACM_Metaboxes {
             update_post_meta($post_id, 'acm_chapter_course', $chapter_course_id);
             update_post_meta($post_id, 'course_id', $chapter_course_id);
 
-            wp_update_post(array(
-                'ID'          => $post_id,
-                'post_parent' => $chapter_course_id,
-            ));
+            $this->update_post_parent($post_id, $chapter_course_id);
         }
 
         if (isset($_POST['acm_chapter_number'])) {
@@ -533,6 +535,10 @@ class ACM_Metaboxes {
     }
     
     public function save_lesson_meta($post_id, $post) {
+        if ($this->is_internal_parent_update) {
+            return;
+        }
+
         if (!isset($_POST['acm_lesson_meta_nonce']) || !wp_verify_nonce($_POST['acm_lesson_meta_nonce'], 'acm_lesson_meta')) {
             return;
         }
@@ -577,10 +583,7 @@ class ACM_Metaboxes {
                 update_post_meta($post_id, 'course_id', $lesson_course_id);
             }
 
-            wp_update_post(array(
-                'ID'          => $post_id,
-                'post_parent' => $lesson_chapter_id,
-            ));
+            $this->update_post_parent($post_id, $lesson_chapter_id);
         }
         
         if (isset($_POST['acm_lesson_video_type'])) {
@@ -647,5 +650,25 @@ class ACM_Metaboxes {
             ));
             add_action('save_post', array($this, 'save_lesson_meta'), 10, 2);
         }
+    }
+
+    private function update_post_parent($post_id, $parent_id) {
+        $post_id = (int) $post_id;
+        $parent_id = (int) $parent_id;
+
+        if ($post_id <= 0) {
+            return;
+        }
+
+        if ((int) wp_get_post_parent_id($post_id) === $parent_id) {
+            return;
+        }
+
+        $this->is_internal_parent_update = true;
+        wp_update_post(array(
+            'ID'          => $post_id,
+            'post_parent' => $parent_id,
+        ));
+        $this->is_internal_parent_update = false;
     }
 }

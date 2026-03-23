@@ -225,6 +225,10 @@ class ACM_Bulk_Duplicate {
             return;
         }
 
+        if (!$this->has_valid_inline_edit_nonce()) {
+            return;
+        }
+
         $course_id = (int) $_REQUEST['acm_bulk_edit_target_course'];
         if ($course_id <= 0 || get_post_type($course_id) !== 'acm_course') {
             return;
@@ -241,6 +245,12 @@ class ACM_Bulk_Duplicate {
 
         if (!is_admin() || !current_user_can('edit_post', $post_id)) {
             return;
+        }
+
+        if (isset($_REQUEST['acm_bulk_edit_target_chapter']) || isset($_REQUEST['acm_bulk_edit_target_course'])) {
+            if (!$this->has_valid_inline_edit_nonce()) {
+                return;
+            }
         }
 
         $target_chapter_id = (isset($_REQUEST['acm_bulk_edit_target_chapter']) && $_REQUEST['acm_bulk_edit_target_chapter'] !== '')
@@ -499,6 +509,15 @@ class ACM_Bulk_Duplicate {
         $this->is_internal_parent_update = false;
     }
 
+    private function has_valid_inline_edit_nonce() {
+        if (empty($_REQUEST['_inline_edit'])) {
+            return false;
+        }
+
+        $nonce = sanitize_text_field(wp_unslash($_REQUEST['_inline_edit']));
+        return (bool) wp_verify_nonce($nonce, 'inlineeditnonce');
+    }
+
     /**
      * Duplicate post (course or lesson)
      */
@@ -606,7 +625,7 @@ class ACM_Bulk_Duplicate {
         }
 
         // Duplicate lessons attached directly to a course (without a chapter relation).
-        $direct_lesson_ids = get_posts(array(
+        $direct_lesson_ids_by_meta = get_posts(array(
             'post_type'      => 'acm_lesson',
             'posts_per_page' => -1,
             'post_status'    => 'any',
@@ -614,12 +633,36 @@ class ACM_Bulk_Duplicate {
             'orderby'        => 'menu_order title',
             'order'          => 'ASC',
             'meta_query'     => array(
+                'relation' => 'OR',
                 array(
                     'key'   => '_acm_lesson_course',
                     'value' => $course_id,
                 ),
+                array(
+                    'key'   => 'acm_lesson_course',
+                    'value' => $course_id,
+                ),
+                array(
+                    'key'   => 'course_id',
+                    'value' => $course_id,
+                ),
             ),
         ));
+
+        $direct_lesson_ids_by_parent = get_posts(array(
+            'post_type'      => 'acm_lesson',
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'fields'         => 'ids',
+            'orderby'        => 'menu_order title',
+            'order'          => 'ASC',
+            'post_parent'    => (int) $course_id,
+        ));
+
+        $direct_lesson_ids = array_values(array_unique(array_map(
+            'intval',
+            array_merge($direct_lesson_ids_by_meta, $direct_lesson_ids_by_parent)
+        )));
 
         foreach ($direct_lesson_ids as $old_lesson_id) {
             if (isset($duplicated_old_lesson_ids[$old_lesson_id])) {
@@ -643,6 +686,15 @@ class ACM_Bulk_Duplicate {
             delete_post_meta($new_lesson_id, 'course_id');
 
             $old_lesson_chapter_id = (int) get_post_meta($old_lesson_id, '_acm_lesson_chapter', true);
+            if ($old_lesson_chapter_id <= 0) {
+                $old_lesson_chapter_id = (int) get_post_meta($old_lesson_id, 'acm_lesson_chapter', true);
+            }
+            if ($old_lesson_chapter_id <= 0) {
+                $parent_id = (int) wp_get_post_parent_id($old_lesson_id);
+                if ($parent_id > 0 && get_post_type($parent_id) === 'acm_chapter') {
+                    $old_lesson_chapter_id = $parent_id;
+                }
+            }
             if ($old_lesson_chapter_id > 0 && isset($chapter_id_map[$old_lesson_chapter_id])) {
                 update_post_meta($new_lesson_id, '_acm_lesson_chapter', $chapter_id_map[$old_lesson_chapter_id]);
                 update_post_meta($new_lesson_id, 'acm_lesson_chapter', $chapter_id_map[$old_lesson_chapter_id]);
